@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Short link site for **https://atdr.eu**. A static site built with
+Short link site for **<https://atdr.eu>**. A static site built with
 [Suri](https://github.com/surishortlink/suri) (`@surishortlink/suri`, a
 devDependency) and deployed to GitHub Pages automatically on every push to
 `main`. Each entry in `src/links.json` becomes a page at `https://atdr.eu/<key>`
@@ -14,8 +14,11 @@ edits to a data file, fully validated by the `pre-commit` hook and again by
 add ceremony without adding safety. Commit to `main` and push.
 
 This is an intentional exception to the GitHub Flow convention used elsewhere.
-Don't open PRs here, and don't "fix" this by introducing branches. `pr.yml`
-exists only because Dependabot opens PRs.
+Don't open PRs here, and don't "fix" this by introducing branches. The main
+ruleset lets the repository admin push straight to `main` because the repo
+commits `.github/admin-bypass`, which atdr/github-boilerplate's `configure.sh`
+reads. Everyone else, Dependabot included, merges through a PR with the gates
+required.
 
 Larger structural work (build tooling, workflows, `scripts/`) is the one case
 where a branch is worth it, since those changes can break the deploy in ways the
@@ -48,24 +51,31 @@ bookmarked; prefer updating a key's URL over deleting the key.
 
 ## CI
 
-GitHub Actions enforces the same checks everywhere (see `.github/workflows/`):
+The workflows come from atdr/github-boilerplate (pinned by tag, bumped by
+Dependabot):
 
-- `ci.yml` is a reusable workflow running lint, `links.json` validation, and the
-  Suri build. It is the single source of truth for "does this change break
-  anything?".
-- `pr.yml` runs `ci.yml` on every pull request (mostly Dependabot).
-- `deploy.yml` runs `ci.yml` first and only deploys to GitHub Pages if it
-  passes, so a broken commit to `main` never reaches the live site.
+| Workflow           | What it runs                                                                                            |
+| ------------------ | ------------------------------------------------------------------------------------------------------- |
+| `ci.yml`           | `lint`, `validate` and `build` on every Node LTS line, then `ci gate`. On PRs, and called by the deploy |
+| `deploy.yml`       | On push to `main`: `ci.yml` first, then the Suri build and the GitHub Pages deploy only if it passes    |
+| `checks.yml`       | Markdown (mdformat, markdownlint) and the boilerplate conventions, then `checks gate`                   |
+| `pull-request.yml` | PR title and commit messages are Conventional Commits, then `pull-request gate`                         |
 
-Run the same checks locally with `npm run check`. A `pre-commit` hook
-(`.githooks/pre-commit`, enabled automatically after `npm install`) runs lint +
-validate before each commit; bypass it with `git commit --no-verify`.
+A commit pushed straight to `main` gets its CI from the deploy, so nothing
+reaches gh-pages without passing. Run the same checks locally with
+`npm run check`. A `pre-commit` hook (`.githooks/pre-commit`, enabled
+automatically after `npm install`) runs lint + validate before each commit;
+bypass it with `git commit --no-verify`.
 
 ## Repo rules
 
 - Never edit `build/` (generated) or `package-lock.json` by hand.
 - `suri.config.json` controls redirect behavior; don't change it for link work.
-- Formatting is enforced by Prettier (`npm run lint:fix` to fix).
+- Formatting is enforced by Prettier (`npm run lint:fix` to fix), except
+  Markdown, which mdformat owns (`mdformat .`), and the workflow files, which
+  follow the boilerplate's layout. Both are listed in `.prettierignore`.
+- Workflows: each file's `name:` is its filename stem, and every job sets
+  `timeout-minutes`. See atdr/github-boilerplate's STANDARDS.md.
 - `src/links.json` is validated by `scripts/validate-links.mjs`
   (`npm run validate`): valid http(s) URLs, no case-insensitive key collisions,
   `/` and `new-key` pinned at the top, and the rest in natural case-insensitive

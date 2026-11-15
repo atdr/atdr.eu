@@ -1,0 +1,14 @@
+# mdformat owns Markdown (.mdformat.toml, run by checks.yml). Prettier formats
+# it differently, so with both the two would keep undoing each other.
+*.md
+
+# Generated
+package-lock.json
+build/
+node_modules/
+
+# Copied from atdr/github-boilerplate, or laid out to match it, so
+# `apply.sh --diff` can compare them. Prettier would fold the long concurrency
+# expressions across lines.
+.github/workflows/
+.github/ISSUE_TEMPLATE/
