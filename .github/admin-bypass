@@ -1,0 +1,6 @@
+# Read by atdr/github-boilerplate's scripts/configure.sh: the main ruleset lets
+# the repository admin bypass it. Link changes are committed straight to main
+# (see AGENTS.md), each one checked by the pre-commit hook and again by
+# deploy.yml's CI before it is published. Dependabot and everyone else still
+# merge through a PR with the gates required. Delete this file and rerun
+# configure.sh --apply to bind the admin too.

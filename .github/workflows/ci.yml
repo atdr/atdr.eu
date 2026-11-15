@@ -1,61 +1,51 @@
-name: CI
+name: ci
 
-# Reusable workflow holding the single source of truth for "does this change
-# break anything?". It is called by:
-#   - pr.yml      on every pull request (mostly Dependabot dependency bumps)
-#   - deploy.yml  on every push to main, *before* the GitHub Pages deploy
-# Keeping the checks here means PRs and production deploys run the exact same
-# gate, so nothing reaches gh-pages without passing first.
-
+# The one answer to "does this change break anything?": lint, links.json
+# validation and the Suri build, on every Node line in LTS. It runs on pull
+# requests, and deploy.yml calls it on every push to main before publishing,
+# so a commit pushed straight to main is checked once, by the deploy, and
+# nothing reaches gh-pages without passing.
 on:
+  pull_request:
   workflow_call:
 
 permissions:
   contents: read
 
+# Pull requests share a group per branch, so a new push cancels the run it
+# supersedes. A run called from deploy.yml gets a group of its own, keyed by
+# the deploy run, so it never waits on the deploy group itself.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  lint:
-    name: Lint (Prettier)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: lts/*
-          cache: npm
-      - name: Install dependencies
-        run: npm ci
-      - name: Check formatting
-        run: npm run lint
+  node:
+    uses: atdr/github-boilerplate/.github/workflows/node-ci.yml@v0.4.0
+    with:
+      # Each must exist in package.json; a missing one fails the job.
+      scripts: lint validate build
+      # No tests, so nothing to cover.
+      coverage: false
 
-  validate:
-    name: Validate links.json
+  # The one check the ruleset requires from this workflow. The Node matrix
+  # follows LTS, so requiring its jobs by name would break the ruleset every
+  # time a line enters or leaves LTS.
+  gate:
+    name: ci gate
+    # Not always(): a run superseded by a newer one is cancelled, and its gate
+    # would report a failure on the same commit the newer run is checking.
+    if: ${{ !cancelled() }}
+    needs: [node]
+    timeout-minutes: 5
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: lts/*
-      # No npm install needed: the validator uses only Node built-ins.
-      - name: Validate src/links.json
-        run: npm run validate
-
-  build:
-    name: Build (Suri)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: lts/*
-          cache: npm
-      - name: Install dependencies
-        run: npm ci
-      - name: Build with Suri
-        run: npm run build
+      - name: Require every job to have passed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          for result in $RESULTS; do
+            case "$result" in
+              failure|cancelled) echo "::error::a required job finished as $result"; exit 1 ;;
+            esac
+          done
