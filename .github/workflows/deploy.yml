@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: deploy
 
 on:
   push:
@@ -14,15 +14,16 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Gate: run the same lint/validate/build checks as PRs *before* anything is
-  # published, so a bad commit to main (e.g. a malformed new link) can never
-  # reach the live gh-pages site.
+  # Gate: run the same checks as PRs *before* anything is published, so a bad
+  # commit to main (e.g. a malformed new link) can never reach the live
+  # gh-pages site. Commits pushed straight to main get their only CI run here.
   ci:
-    name: CI
     uses: ./.github/workflows/ci.yml
 
   build:
+    name: build the site
     needs: ci
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -42,7 +43,9 @@ jobs:
           path: build/
 
   deploy:
+    name: publish to GitHub Pages
     needs: build
+    timeout-minutes: 10
     permissions:
       pages: write
       id-token: write
