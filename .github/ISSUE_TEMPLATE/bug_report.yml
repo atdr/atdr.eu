@@ -1,0 +1,44 @@
+name: Bug report
+description: An atdr.eu short link goes to the wrong place, or nowhere
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this.
+
+        Please write in plain English: short sentences, everyday words, and exactly what you saw. There is no need to write it up formally.
+
+        **Do not paste private URLs.** If the link should point somewhere private, describe it instead.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Before reporting
+      options:
+        - label: I searched the existing issues for this link
+          required: true
+
+  - type: input
+    id: link
+    attributes:
+      label: Short link
+      description: The atdr.eu link you opened, e.g. https://atdr.eu/github
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: Where you expected it to go, and where it went instead (a 404, the wrong page, a page that no longer exists).
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Browser
+      description: Browser and device, in case the redirect behaves differently there.
+    validations:
+      required: false
