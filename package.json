@@ -16,10 +16,10 @@
     "prepare": "git config core.hooksPath .githooks || true"
   },
   "devDependencies": {
-    "@surishortlink/suri": "^1",
+    "@surishortlink/suri": "^2",
     "prettier": "^3"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   }
 }
